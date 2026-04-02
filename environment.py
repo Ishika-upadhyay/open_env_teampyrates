@@ -91,6 +91,42 @@ class EVFleetEnvironment:
             cars=self.cars
         )
 
-    
+    #this is the main physics engine
+
+    def step(self, action: EVAction) -> tuple[EVObservation, Reward, bool, dict]:
+        
+        #check if grid is overload and fail if true
+        total_kw_requested = sum(action.charge_allocations_kw)
+        if total_kw_requested > self.grid_limit:
+            self.is_done = True
+            return self.state(), Reward(score=0.0, message="FAIL: Grid Overload!"), self.is_done, {}
+
+        #add power to cars and take money
+        current_price = self.price_curve[self.current_hour]
+        for i, car in enumerate(self.cars):
+            power_given = action.charge_allocations_kw[i]
+            
+            #stop car from overcharging
+            if car.current_charge_kwh + power_given > car.target_charge_kwh:
+                power_given = car.target_charge_kwh - car.current_charge_kwh
+                
+            car.current_charge_kwh += power_given
+            self.total_spent += (power_given * current_price)
+            car.hours_until_deadline -= 1
+            
+            #fail if deadline is missed
+            if car.hours_until_deadline <= 0 and car.current_charge_kwh < car.target_charge_kwh:
+                self.is_done = True
+                return self.state(), Reward(score=0.1, message=f"FAIL: Car {car.car_id} missed deadline!"), self.is_done, {}
+
+        #move time by 1 hour
+        self.current_hour += 1
+        
+        #check if 10 hours are done and calculate final score
+        if self.current_hour >= 10:
+            self.is_done = True
+            return self.state(), Reward(score=1.0, message="Shift complete!"), self.is_done, {"total_spent": self.total_spent}
+            
+        return self.state(), Reward(score=0.5, message="Running cleanly."), self.is_done, {"total_spent": self.total_spent}
 
    
