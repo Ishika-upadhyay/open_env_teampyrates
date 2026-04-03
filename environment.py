@@ -129,4 +129,44 @@ class EVFleetEnvironment:
             
         return self.state(), Reward(score=0.5, message="Running cleanly."), self.is_done, {"total_spent": self.total_spent}
 
-   
+
+# --- OPENENV SERVER INTEGRATION ---
+import uvicorn
+import uuid
+from openenv_core.env_server import Environment, create_app
+
+# Handle different versions of the openenv-core library
+try:
+    from openenv_core import StepResult, State
+except ImportError:
+    from openenv_core.env_server.types import StepResult, State
+
+class EVFleetAdapter(Environment):
+    def __init__(self):
+        self.game = EVFleetEnvironment()
+        self.ep_id = str(uuid.uuid4())
+        self.steps = 0
+        
+    def reset(self):
+        self.ep_id = str(uuid.uuid4())
+        self.steps = 0
+        return self.game.reset()
+        
+    def step(self, action: EVAction):
+        obs, reward, done, info = self.game.step(action)
+        self.steps += 1
+        return StepResult(
+            observation=obs,
+            reward=reward.score,
+            done=done
+        )
+        
+    @property
+    def state(self):
+        return State(episode_id=self.ep_id, step_count=self.steps)
+
+def main():
+    print("Launching EV Fleet Charging Environment...")
+    env_adapter = EVFleetAdapter()
+    app = create_app(env_adapter, EVAction, EVObservation)
+    uvicorn.run(app, host="0.0.0.0", port=7860)
