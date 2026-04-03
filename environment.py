@@ -14,6 +14,9 @@ class EVObservation(BaseModel):
     current_price_per_kwh: float
     grid_max_kw: float
     cars: List[CarState]
+    # Added for openenv-core v0.2.x compatibility
+    reward: float = 0.0
+    done: bool = False
 
 #this is the data of all the cars and the contraints
 
@@ -135,11 +138,13 @@ import uvicorn
 import uuid
 from openenv_core.env_server import Environment, create_app
 
-# Handle different versions of the openenv-core library
+# Fallback block to safely load State regardless of library version
 try:
-    from openenv_core import StepResult, State
+    from openenv_core.env_server.types import State
 except ImportError:
-    from openenv_core.env_server.types import StepResult, State
+    class State(BaseModel):
+        episode_id: str
+        step_count: int
 
 class EVFleetAdapter(Environment):
     def __init__(self):
@@ -155,11 +160,11 @@ class EVFleetAdapter(Environment):
     def step(self, action: EVAction):
         obs, reward, done, info = self.game.step(action)
         self.steps += 1
-        return StepResult(
-            observation=obs,
-            reward=reward.score,
-            done=done
-        )
+        
+        # Merge reward and done directly into the Observation for v0.2.x
+        obs.reward = reward.score
+        obs.done = done
+        return obs
         
     @property
     def state(self):
