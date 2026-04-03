@@ -172,6 +172,6 @@ class EVFleetAdapter(Environment):
 
 def main():
     print("Launching EV Fleet Charging Environment...")
-    env_adapter = EVFleetAdapter()
-    app = create_app(env_adapter, EVAction, EVObservation)
+    # FIX: Pass the class directly (EVFleetAdapter), NOT an instance (EVFleetAdapter())
+    app = create_app(EVFleetAdapter, EVAction, EVObservation)
     uvicorn.run(app, host="0.0.0.0", port=7860)
