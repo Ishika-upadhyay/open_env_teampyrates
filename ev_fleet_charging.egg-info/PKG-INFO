@@ -1,0 +1,6 @@
+Metadata-Version: 2.4
+Name: ev-fleet-charging
+Version: 0.1.0
+Requires-Dist: openenv-core
+Requires-Dist: pydantic
+Requires-Dist: openai
