@@ -98,26 +98,31 @@ class EVFleetEnvironment:
         )
 
     def step(self, action: EVAction) -> tuple[EVObservation, Reward, bool, dict]:
-        #check if grid is overload and fail if true
-        total_kw_requested = sum(action.charge_allocations_kw)
-        
-        #prevent list index out of range if AI sends too many/few numbers
+        # 1. Basic Validation
         if len(action.charge_allocations_kw) != len(self.cars):
              self.is_done = True
              return self.state(), Reward(score=0.0, message="FAIL: Action array size did not match number of cars!"), self.is_done, {}
 
-        if total_kw_requested > self.grid_limit:
-            self.is_done = True
-            return self.state(), Reward(score=0.0, message="FAIL: Grid Overload!"), self.is_done, {}
+        total_kw_requested = sum(action.charge_allocations_kw)
+        
+        # --- NEW: HACKATHON-SAFE "PUNISH BUT CONTINUE" LOGIC ---
+        is_overloaded = False
+        step_message = "Running cleanly."
 
-        #get the exact price with the noise from the state
+        if total_kw_requested > self.grid_limit:
+            is_overloaded = True
+            step_message = "PENALTY: Grid Overload! Breaker tripped, zero power delivered."
+            # Set action to 0 so the cars don't charge this hour
+            action.charge_allocations_kw = [0.0] * len(self.cars)
+            total_kw_requested = 0.0 # reset for utilization math below
+
+        # 2. Process Charging and Money
         current_price = self.state().current_price_per_kwh
         
-        #add power to cars and take money
         for i, car in enumerate(self.cars):
             power_given = action.charge_allocations_kw[i]
             
-            #stop car from overcharging
+            # Stop car from overcharging
             if car.current_charge_kwh + power_given > car.target_charge_kwh:
                 power_given = car.target_charge_kwh - car.current_charge_kwh
                 
@@ -125,46 +130,56 @@ class EVFleetEnvironment:
             self.total_spent += (power_given * current_price)
             car.hours_until_deadline -= 1
             
-            #fail if deadline is missed
+            # Fail if deadline is missed
             if car.hours_until_deadline <= 0 and car.current_charge_kwh < car.target_charge_kwh:
                 self.is_done = True
                 return self.state(), Reward(score=0.1, message=f"FAIL: Car {car.car_id} missed deadline!"), self.is_done, {}
 
-        #move time by 1 hour
+        # 3. Move Time Forward
         self.current_hour += 1
 
-        #random events for hard mode for the next hour
+        # 4. Hard Mode Random Events
         if self.difficulty == "hard" and self.current_hour < 10:
-            #grid fluctuation
             self.grid_limit = float(random.randint(30, 60))
-            
-            #random arrivals (30% chance a new car shows up)
             if random.random() < 0.30:
                 new_target = float(random.randint(10, 40))
                 new_deadline = random.randint(3, 8)
                 self.cars.append(CarState(car_id=self.next_car_id, current_charge_kwh=0.0, target_charge_kwh=new_target, hours_until_deadline=new_deadline))
                 self.next_car_id += 1
 
-        #check if 10 hours are done and calculate final score
-        #check if 10 hours are done and calculate final score
+        # 5. Shift Completion Check (Hour 10)
         if self.current_hour >= 10:
             self.is_done = True
             final_score = 1.0
             
-            #calculate medium mode score
             if self.difficulty == "medium":
                 raw_score = 1.0 - ((self.total_spent - 9.0) / (27.0 - 9.0))
                 final_score = max(0.1, min(1.0, raw_score))
                 
-            #calculate hard mode score
             elif self.difficulty == "hard":
                 raw_score = 1.0 - ((self.total_spent - 10.0) / (50.0 - 10.0))
                 final_score = max(0.1, min(1.0, raw_score))
 
             return self.state(), Reward(score=final_score, message="Shift complete!"), self.is_done, {"total_spent": self.total_spent}
-            
-        return self.state(), Reward(score=0.5, message="Running cleanly."), self.is_done, {"total_spent": self.total_spent}
 
+        # 6. Step-by-Step Scoring (Hours 1-9)
+        if is_overloaded:
+            # The ultimate legal punishment for this step
+            step_score = 0.0 
+        else:
+            utilization = total_kw_requested / self.grid_limit if self.grid_limit > 0 else 0
+            step_score = 0.4 
+            
+            if current_price <= 0.15:
+                step_score += (utilization * 0.2)  
+            elif current_price >= 0.25:
+                step_score -= (utilization * 0.2) 
+            else:
+                step_score += (utilization * 0.05) 
+
+        final_step_score = max(0.0, min(1.0, step_score))
+        return self.state(), Reward(score=round(final_step_score, 2), message=step_message), self.is_done, {"total_spent": self.total_spent}
+    
 # --- OPENENV SERVER INTEGRATION ---
 import uuid
 from openenv_core.env_server import Environment
