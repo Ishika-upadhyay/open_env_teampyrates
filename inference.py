@@ -12,7 +12,7 @@ def log_step(step, action, reward, done):
 
 async def main():
     client = OpenAI(base_url=API_BASE_URL, api_key=API_KEY)
-    game = EVFleetEnvironment(difficulty="medium")
+    game = EVFleetEnvironment(difficulty="hard")
     obs = game.reset()
     
     print(f"[START] task=ev-fleet-charging env=ev-fleet model={MODEL_NAME}", flush=True)
