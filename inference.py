@@ -32,7 +32,7 @@ async def main():
         
         {car_info}
         
-        Reply ONLY with a comma-separated list of 3 numbers representing the kW to give each car this hour.
+        Reply ONLY with a comma-separated list of {len(obs.cars)} numbers representing the kW to give each car this hour.
         Rule 1: The sum MUST be less than {obs.grid_max_kw}.
         Rule 2: If the price is high ($0.30), try to charge 0.0 unless a deadline is imminent.
         Example output: 10.0, 5.5, 0.0
