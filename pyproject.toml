@@ -1,0 +1,18 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ev-fleet-charging"
+version = "0.1.0"
+dependencies = [
+    "openenv-core",
+    "pydantic",
+    "openai"
+]
+
+[project.scripts]
+server = "environment:main"
+
+[tool.setuptools]
+py-modules = ["environment", "inference"]

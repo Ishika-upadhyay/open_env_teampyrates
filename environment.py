@@ -15,6 +15,9 @@ class EVObservation(BaseModel):
     current_price_per_kwh: float
     grid_max_kw: float
     cars: List[CarState]
+    # Added for openenv-core v0.2.x compatibility
+    reward: float = 0.0
+    done: bool = False
 
 #this is the data of all the cars and the contraints
 
@@ -161,3 +164,5 @@ class EVFleetEnvironment:
             return self.state(), Reward(score=final_score, message="Shift complete!"), self.is_done, {"total_spent": self.total_spent}
             
         return self.state(), Reward(score=0.5, message="Running cleanly."), self.is_done, {"total_spent": self.total_spent}
+
+   
