@@ -12,7 +12,7 @@ dependencies = [
 ]
 
 [project.scripts]
-server = "environment:main"
+server = "server.app:main"
 
 [tool.setuptools]
 py-modules = ["environment", "inference"]
