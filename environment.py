@@ -143,17 +143,19 @@ class EVFleetEnvironment:
                 self.next_car_id += 1
 
         #check if 10 hours are done and calculate final score
+        #check if 10 hours are done and calculate final score
         if self.current_hour >= 10:
             self.is_done = True
             final_score = 1.0
             
+            #calculate medium mode score
             if self.difficulty == "medium":
                 raw_score = 1.0 - ((self.total_spent - 9.0) / (27.0 - 9.0))
                 final_score = max(0.1, min(1.0, raw_score))
                 
+            #calculate hard mode score
             elif self.difficulty == "hard":
-                #we use a wider range here because random cars make the cost unpredictable
-                raw_score = 1.0 - ((self.total_spent - 15.0) / (70.0 - 15.0))
+                raw_score = 1.0 - ((self.total_spent - 10.0) / (50.0 - 10.0))
                 final_score = max(0.1, min(1.0, raw_score))
 
             return self.state(), Reward(score=final_score, message="Shift complete!"), self.is_done, {"total_spent": self.total_spent}
