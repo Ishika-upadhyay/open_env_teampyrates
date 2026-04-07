@@ -3,6 +3,6 @@ version: "0.1.0"
 description: "EV Fleet Charging Simulator for the OpenEnv Hackathon"
 
 # This tells OpenEnv where your classes are located in environment.py
-environment: "environment:EVFleetEnvironment"
+environment: "environment:EVFleetAdapter"
 action: "environment:EVAction"
 observation: "environment:EVObservation"
