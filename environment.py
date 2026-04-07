@@ -165,4 +165,38 @@ class EVFleetEnvironment:
             
         return self.state(), Reward(score=0.5, message="Running cleanly."), self.is_done, {"total_spent": self.total_spent}
 
+# --- OPENENV SERVER INTEGRATION ---
+import uuid
+from openenv_core.env_server import Environment
+
+try:
+    from openenv_core.env_server.types import State
+except ImportError:
+    class State(BaseModel):
+        episode_id: str
+        step_count: int
+
+class EVFleetAdapter(Environment):
+    def __init__(self):
+        self.game = EVFleetEnvironment()
+        self.ep_id = str(uuid.uuid4())
+        self.steps = 0
+        
+    def reset(self):
+        self.ep_id = str(uuid.uuid4())
+        self.steps = 0
+        return self.game.reset()
+        
+    def step(self, action: EVAction):
+        obs, reward, done, info = self.game.step(action)
+        self.steps += 1
+        
+        # Merge reward and done directly into the Observation
+        obs.reward = reward.score
+        obs.done = done
+        return obs
+        
+    @property
+    def state(self):
+        return State(episode_id=self.ep_id, step_count=self.steps)
    
