@@ -8,11 +8,10 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from environment import EVFleetAdapter, EVAction, EVObservation
 
-# Create the app instance (Passing the CLASS, not an instance)
+# Create the app instance 
 app = create_app(EVFleetAdapter, EVAction, EVObservation, env_name="ev-fleet-charging")
 
 def main():
-    """Explicit main function required by the validator."""
     print("Launching EV Fleet Charging Server...")
     uvicorn.run(app, host="0.0.0.0", port=7860)
 
