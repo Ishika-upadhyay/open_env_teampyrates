@@ -7,15 +7,19 @@ API_BASE_URL = os.getenv("API_BASE_URL", "https://router.huggingface.co/v1")
 MODEL_NAME = os.getenv("MODEL_NAME", "Qwen/Qwen2.5-72B-Instruct")
 API_KEY = os.getenv("HF_TOKEN")
 
+# --- DEFINE THE TASK HERE ---
+TASK_NAME = "task_hard"
+DIFFICULTY = "hard"
+
 def log_step(step, action, reward, done):
     print(f"[STEP] step={step} action={action} reward={reward:.2f} done={str(done).lower()} error=null", flush=True)
 
 async def main():
     client = OpenAI(base_url=API_BASE_URL, api_key=API_KEY)
-    game = EVFleetEnvironment(difficulty="hard")
+    game = EVFleetEnvironment(difficulty=DIFFICULTY)
     obs = game.reset()
     
-    print(f"[START] task=ev-fleet-charging env=ev-fleet model={MODEL_NAME}", flush=True)
+    print(f"[START] task={TASK_NAME} env=ev-fleet model={MODEL_NAME}", flush=True)
 
     rewards = []
     
@@ -35,7 +39,7 @@ async def main():
         Reply ONLY with a comma-separated list of {len(obs.cars)} numbers representing the kW to give each car this hour.
         Rule 1: The sum MUST be less than {obs.grid_max_kw}.
         Rule 2: If the price is high ($0.30), try to charge 0.0 unless a deadline is imminent.
-        Example output: 10.0, 5.5, 0.0
+        Example output for 3 cars: 10.0, 5.5, 0.0
         """
 
         # 2. Ask the AI for its move
@@ -57,7 +61,8 @@ async def main():
                 allocations.append(0.0)
                 
         except Exception as e:
-            allocations = [0.0, 0.0, 0.0] # Safe fallback
+            # Safely create an array of 0.0s that exactly matches the number of cars!
+            allocations = [0.0] * len(obs.cars) 
 
         # 3. Apply the move to the game
         action = EVAction(charge_allocations_kw=allocations)
@@ -71,7 +76,7 @@ async def main():
     success = final_score > 0.5
     rewards_str = ",".join(f"{r:.2f}" for r in rewards)
     
-    print(f"[END] success={str(success).lower()} steps={len(rewards)} score={final_score:.2f} rewards={rewards_str}", flush=True)
+    print(f"[END] success={str(success).lower()} steps={len(rewards)} score={final_score:.3f} rewards={rewards_str}", flush=True)
 
 if __name__ == "__main__":
     asyncio.run(main())
