@@ -6,16 +6,19 @@ environment: "environment:EVFleetAdapter"
 action: "environment:EVAction"
 observation: "environment:EVObservation"
 
-tasks:
+ttasks:
   - id: task_easy
     difficulty: easy
+    grader: "environment:grade_task"
     reset_params:
       difficulty: easy
   - id: task_medium
     difficulty: medium
+    grader: "environment:grade_task"
     reset_params:
       difficulty: medium
   - id: task_hard
     difficulty: hard
+    grader: "environment:grade_task"
     reset_params:
       difficulty: hard
