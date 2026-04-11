@@ -6,7 +6,7 @@ environment: "environment:EVFleetAdapter"
 action: "environment:EVAction"
 observation: "environment:EVObservation"
 
-ttasks:
+tasks:
   - id: task_easy
     difficulty: easy
     grader: "environment:grade_task"
