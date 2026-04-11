@@ -72,7 +72,7 @@ async def main():
         log_step(step, str(allocations), reward_obj.score, done)
 
     # 4. End the game
-    final_score = rewards[-1] if rewards else 0.0
+    final_score = rewards[-1] if rewards else 0.01
     success = final_score > 0.5
     rewards_str = ",".join(f"{r:.2f}" for r in rewards)
     
